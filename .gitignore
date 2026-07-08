@@ -1,0 +1,2 @@
+src/registry/*
+!src/registry/.gitkeep
