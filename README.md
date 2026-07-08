@@ -22,8 +22,6 @@ Lazarus Guard is a modular face-recognition security system built on 936-dimensi
 
 ## 🏗️ Architecture
 
-## 🏗️ Architecture
-
 ```mermaid
 graph TB
     subgraph Input Layer
