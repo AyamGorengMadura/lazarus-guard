@@ -22,16 +22,18 @@ Lazarus Guard is a modular face-recognition security system built on 936-dimensi
 
 ## 🏗️ Architecture
 
+## 🏗️ Architecture
+
 ```mermaid
 graph TB
     subgraph Input Layer
-        CAM[📷 Webcam/IP Camera]
-        MULTI[📡 Multi-Device Input]
+        CAM[Webcam/IP Camera]
+        MULTI[Multi-Device Input]
     end
 
     subgraph Processing Pipeline
         DET[Face Detection]
-        LAND[Landmark Extraction<br/>936-dim normalized]
+        LAND[Landmark Extraction - 936-dim normalized]
         EMB[Embedding Generation]
     end
 
@@ -48,10 +50,10 @@ graph TB
     end
 
     subgraph Output
-        AUTH[✅ Authorized]
-        DENY[❌ Denied]
-        LOG[📝 Event Log]
-        API[🔌 REST/gRPC API]
+        AUTH[Authorized]
+        DENY[Denied]
+        LOG[Event Log]
+        API[REST/gRPC API]
     end
 
     CAM --> DET
@@ -69,7 +71,7 @@ graph TB
     LOG --> API
     PHOTO --> REG
     REG --> DB
-
+```
 ✨ Features
 
     936-Dimensional Embeddings — Normalized facial landmark vectors via MediaPipe FaceLandmarker.
