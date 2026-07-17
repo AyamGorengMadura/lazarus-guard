@@ -12,10 +12,14 @@ from pillow_heif import register_heif_opener
 register_heif_opener()
 
 # Ini tuh buat arahin modelnya ngescan folder buat nyari foto, task model, ama folder buat nyimpen alert kalo ada orang asing yang ke-detect.
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-REGISTRY_PATH = os.path.join(BASE_DIR, "../common/registry/")
-MODEL_PATH = os.path.join(BASE_DIR, "../common/assets/face_landmarker_v2_with_blendshapes.task")
-ALERTS_PATH = os.path.join(BASE_DIR, "alerts/")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+
+REGISTRY_PATH = os.path.join(BASE_DIR, "src", "registry")
+MODEL_PATH = os.path.join(BASE_DIR, "configs", "face_landmarker_v2_with_blendshapes.task")
+
+ALERTS_PATH = os.path.join(CURRENT_DIR, "alerts")
 
 # Threshold cosine similarity buat matching — makin tinggi makin ketat
 # 0.97 = recommended, turunin ke 0.95 kalo terlalu strict
