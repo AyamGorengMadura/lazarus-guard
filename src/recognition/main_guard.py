@@ -1,13 +1,18 @@
+from time import time
+
 import cv2
 import mediapipe as mp
 import os
 import numpy as np
+import redis
 from PIL import Image
+import json
 from pillow_heif import register_heif_opener
 # ini atas gausah diubah ubah anj, kalo mau nambah modul pake venv jangan global.
 # source venv/bin/activate  # buat linux
 # venv\Scripts\activate  # buat windows (kalo pake terminal vsc pake yang linux aja)
 # pip install opencv-python mediapipe pillow pillow-heif (kalo belom install, tapi kalo udah yaudah jangan diinstall lagi, ngapain juga)
+r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 # ini biar supprt heic, tadi gabisa terus dibisain. caranya? adalah pokoknya.
 register_heif_opener()
 
@@ -43,6 +48,10 @@ class LazarusGuard:
 
         if not os.path.exists(ALERTS_PATH): os.makedirs(ALERTS_PATH)
         self.load_registry()
+
+        self.last_published_identity = None
+        self.last_unknown_publish_time = 0
+        self.UNKNOWN_COOLDOWN = 5  # detik
 
     def get_face_embedding(self, landmarks):
 
@@ -153,6 +162,32 @@ class LazarusGuard:
 
                     # 3. Match
                     identity, score = self.match_face(emb)
+
+                    should_publish = False
+                    embedding_id = None
+
+                    if identity != "ORANG ASING":
+                        if identity != self.last_published_identity:
+                            should_publish = True
+                            embedding_id = identity
+                            self.last_published_identity = identity
+                    else:
+                        now = time()  # bukan time.time()
+                        if now - self.last_unknown_publish_time > self.UNKNOWN_COOLDOWN:
+                            should_publish = True
+                            embedding_id = f"unknown_{int(now)}"
+                            self.last_unknown_publish_time = now
+                        self.last_published_identity = None
+
+                    if should_publish:
+                        event_payload = {
+                            "match": identity != "ORANG ASING",
+                            "name": identity if identity != "ORANG ASING" else None,
+                            "confidence": float(score),
+                            "embedding_id": embedding_id
+                        }
+                        r.publish("event:face_detected", json.dumps(event_payload))
+
                     color = (0, 255, 0) if identity != "ORANG ASING" else (0, 0, 255)
 
                     # 4. Render UI
