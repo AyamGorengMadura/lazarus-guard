@@ -4,7 +4,7 @@
 
 **Face-recognition security system with real-time multi-device deployment**
 
-Part of [Project Nexus: Dozor](https://github.com/AyamGorengMadura/nexus-core)
+Part of [Project Nexus](https://github.com/AyamGorengMadura/nexus-core)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-Latest-00A98F?style=flat-square&logo=google&logoColor=white)
@@ -48,10 +48,8 @@ graph TB
     end
 
     subgraph Output
-        AUTH[Authorized]
-        DENY[Denied]
-        LOG[Event Log]
-        API[REST/gRPC API]
+        PUB[Redis Publish - event:face_detected]
+        LOG[Debug Log]
     end
 
     CAM --> DET
@@ -62,104 +60,85 @@ graph TB
     DB --> COS
     COS --> TOP3
     TOP3 --> THR
-    THR --> AUTH
-    THR --> DENY
-    AUTH --> LOG
-    DENY --> LOG
-    LOG --> API
+    THR --> PUB
+    THR --> LOG
     PHOTO --> REG
     REG --> DB
 ```
-✨ Features
 
-    936-Dimensional Embeddings — Normalized facial landmark vectors via MediaPipe FaceLandmarker.
+## ✨ Features
 
-    Cosine Similarity Matching — Averaged top-3 scoring for noise-resilient identification.
+- **936-Dimensional Embeddings** — Normalized facial landmark vectors via MediaPipe FaceLandmarker.
+- **Cosine Similarity Matching** — Averaged top-3 scoring for noise-resilient identification.
+- **Debounce & Cooldown** — Known faces publish once per state change; unknown faces are rate-limited (5s cooldown) to avoid event spam.
+- **Webcam Registration** — Direct face enrollment from camera capture (press `S` during patrol).
+- **Edge-Ready** — Lightweight enough for single-board computers and edge nodes.
+- **Redis Event Bus** — Publishes detection events for consumption by [Nexus Core](https://github.com/AyamGorengMadura/nexus-core).
 
-    Multi-Device Support — Scaffolded directory structure for distributed deployment.
+## 📂 Project Structure
 
-    Webcam Registration — Direct face enrollment from camera capture.
-
-    Edge-Ready — Lightweight enough for single-board computers and edge nodes.
-
-    Modular API — REST/gRPC interface for integration with Nexus orchestrator.
-
-📂 Project Structure
-Plaintext
-
+```
 lazarus-guard/
 ├── src/
-│   ├── recognition/      # Embedding engine, cosine matching, top-3 scoring
-│   ├── capture/          # Webcam & multi-device input handling
-│   ├── registry/         # Face database CRUD, enrollment pipeline
-│   └── api/              # REST/gRPC service layer
-├── configs/              # Device configs, thresholds, model params
-├── tests/                # Unit & integration tests
-├── docs/                 # Technical documentation
-├── scripts/              # Deployment & setup automation
-├── requirements.txt
-├── .env.example
-└── README.md
+│   ├── recognition/
+│   │   └── main_guard.py    # Detection, embedding, matching, Redis publish
+│   └── registry/              # Face database (per-person photo folders)
+├── configs/                    # MediaPipe model files
+└── requirements.txt
+```
 
-🛠️ Requirements
+> A modular split (`api/`, `capture/`, `registry/` as separate CRUD layers) is planned — see Roadmap.
 
-    Python 3.10+
+## 🛠️ Requirements
 
-    MediaPipe
+- Python 3.10+
+- MediaPipe
+- NumPy
+- OpenCV
+- Redis (running instance — see [nexus-core setup](https://github.com/AyamGorengMadura/nexus-core))
 
-    NumPy
+## 🚀 Quick Start
 
-    OpenCV
-
-🚀 Quick Start
-1. Clone Repository
-Bash
-
-git clone [https://github.com/AyamGorengMadura/lazarus-guard.git](https://github.com/AyamGorengMadura/lazarus-guard.git)
+### 1. Clone Repository
+```bash
+git clone https://github.com/AyamGorengMadura/lazarus-guard.git
 cd lazarus-guard
+```
 
-2. Setup Environment
-Bash
+### 2. Setup Environment
+```bash
+pip install opencv-python mediapipe pillow pillow-heif redis --break-system-packages
+```
+> Or use a virtualenv: `python -m venv venv && source venv/bin/activate` before installing.
 
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+### 3. Register Faces
+Place reference photos in `src/registry/<PersonName>/` (JPG, PNG, or HEIC), or use the in-app `S` key to capture directly from webcam during patrol.
 
-3. Configure Environment
-Bash
+### 4. Run
+```bash
+python3 src/recognition/main_guard.py
+```
+Requires a running Redis instance on `localhost:6379`.
 
-cp .env.example .env
-# Edit .env with your device/camera settings
+## 🔌 Integration with Nexus (Current)
 
-4. Run Application
-Bash
+Lazarus Guard publishes face detection events to Redis via Pub/Sub (`event:face_detected`). [Nexus Core](https://github.com/AyamGorengMadura/nexus-core) subscribes to these events for identity resolution, trust-tier lookup, and context injection into the [Yuki Framework](https://github.com/AyamGorengMadura/nexus-core) narrator.
 
-python -m src.api.main
+Event payload example:
+```json
+{"match": true, "name": "Satura", "confidence": 0.98, "embedding_id": "Satura"}
+```
 
-🔌 Integration with Nexus
+## 🗺️ Roadmap
 
-Lazarus Guard operates as a standalone service but is designed to be orchestrated by Nexus Core. Communication happens via REST API or gRPC, allowing Nexus to:
+- [ ] Refactor into modular structure (`src/api/`, `src/capture/`, `src/registry/` as CRUD layer)
+- [ ] REST/gRPC API layer for external integrations
+- [ ] Multi-face simultaneous detection
+- [ ] Anti-spoofing (liveness detection)
+- [ ] Edge deployment configs (Raspberry Pi, Jetson)
+- [ ] Web dashboard for registry management
+- [ ] Encrypted embedding storage
 
-    Trigger scans on events (IoT sensors, schedules).
-
-    Aggregate logs from multiple Lazarus instances.
-
-    Route alerts to other Nexus services (Cyrene, notifications).
-
-🗺️ Roadmap
-
-    [ ] Multi-face simultaneous detection
-
-    [ ] Anti-spoofing (liveness detection)
-
-    [ ] Edge deployment configs (RPi, Jetson)
-
-    [ ] Nexus Core integration protocol
-
-    [ ] Web dashboard for registry management
-
-    [ ] Encrypted embedding storage
-
-📄 License
+## 📄 License
 
 Private — All rights reserved.
